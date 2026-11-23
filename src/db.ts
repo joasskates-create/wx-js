@@ -960,6 +960,19 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_public_payment_events_created ON public_payment_events(created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_public_payment_events_type_created ON public_payment_events(event_type, created_at DESC);
+  CREATE TABLE IF NOT EXISTS wechat_handoff_tickets (
+    id TEXT PRIMARY KEY,
+    order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    entry_id TEXT NOT NULL REFERENCES public_payment_entries(id) ON DELETE CASCADE,
+    ticket_hash TEXT NOT NULL UNIQUE,
+    preview_url TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'ACTIVE',
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_wechat_handoff_tickets_expiry ON wechat_handoff_tickets(status, expires_at);
 `);
 
 try { db.exec("ALTER TABLE public_payment_entries ADD COLUMN token_ciphertext TEXT"); } catch (error) { if (!String(error).includes("duplicate column name")) throw error; }
@@ -1880,6 +1893,55 @@ export function recordPublicPaymentEvent(input: { orderId?: string | null; entry
     .run(randomId("ppevent"), input.orderId ?? null, input.entryId ?? null, input.eventType, input.durationMs ?? null, input.errorCode ?? null, JSON.stringify(input.detail ?? {}), nowIso());
 }
 
+export interface WechatHandoffTicket {
+  id: string;
+  orderId: string;
+  entryId: string;
+  ticketHash: string;
+  previewUrl: string;
+  status: "ACTIVE" | "USED" | "EXPIRED" | "FAILED";
+  expiresAt: string;
+  usedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function createWechatHandoffTicket(input: { orderId: string; entryId: string; ticketHash: string; previewUrl: string; expiresAt: string }): WechatHandoffTicket {
+  const id = randomId("whandoff");
+  const now = nowIso();
+  db.prepare(`INSERT INTO wechat_handoff_tickets
+    (id, order_id, entry_id, ticket_hash, preview_url, status, expires_at, used_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, NULL, ?, ?)`)
+    .run(id, input.orderId, input.entryId, input.ticketHash, input.previewUrl, input.expiresAt, now, now);
+  return getWechatHandoffTicketById(id)!;
+}
+
+export function getWechatHandoffTicketById(id: string): WechatHandoffTicket | undefined {
+  return db.prepare(`SELECT id, order_id AS orderId, entry_id AS entryId, ticket_hash AS ticketHash,
+      preview_url AS previewUrl, status, expires_at AS expiresAt, used_at AS usedAt,
+      created_at AS createdAt, updated_at AS updatedAt
+    FROM wechat_handoff_tickets WHERE id = ?`).get(id) as WechatHandoffTicket | undefined;
+}
+
+export function getWechatHandoffTicketByHash(ticketHash: string): WechatHandoffTicket | undefined {
+  return db.prepare(`SELECT id, order_id AS orderId, entry_id AS entryId, ticket_hash AS ticketHash,
+      preview_url AS previewUrl, status, expires_at AS expiresAt, used_at AS usedAt,
+      created_at AS createdAt, updated_at AS updatedAt
+    FROM wechat_handoff_tickets WHERE ticket_hash = ?`).get(ticketHash) as WechatHandoffTicket | undefined;
+}
+
+export function consumeWechatHandoffTicket(ticketHash: string, now = nowIso()): WechatHandoffTicket | undefined {
+  const usedAt = nowIso();
+  const result = db.prepare(`UPDATE wechat_handoff_tickets
+    SET status = 'USED', used_at = ?, updated_at = ?
+    WHERE ticket_hash = ? AND status = 'ACTIVE' AND expires_at > ?`).run(usedAt, usedAt, ticketHash, now);
+  if (result.changes !== 1) return undefined;
+  return db.prepare(`SELECT id, order_id AS orderId, entry_id AS entryId, ticket_hash AS ticketHash,
+      preview_url AS previewUrl, status, expires_at AS expiresAt, used_at AS usedAt,
+      created_at AS createdAt, updated_at AS updatedAt
+    FROM wechat_handoff_tickets WHERE ticket_hash = ?`).get(ticketHash) as WechatHandoffTicket | undefined;
+}
+
 export function getPublicPaymentMonitoring(windowHours = 24): Record<string, unknown> {
   const hours = Math.max(1, Math.min(168, Math.floor(windowHours || 24)));
   const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
@@ -1910,6 +1972,7 @@ export function getPublicPaymentMonitoring(windowHours = 24): Record<string, unk
     WHERE e.created_at >= ? ORDER BY e.created_at DESC LIMIT 100`).all(since) as Array<Record<string, unknown>>;
   const total = Number(orders.total || 0);
   const success = Number(orders.success || 0);
+  const eventCount = (eventType: string): number => Number(events.find((item) => String(item.eventType) === eventType)?.count || 0);
   return {
     windowHours: hours,
     since,
@@ -1921,7 +1984,14 @@ export function getPublicPaymentMonitoring(windowHours = 24): Record<string, unk
       jsapiSuccessRate: total ? Math.round(success * 10000 / total) / 100 : 0,
       jsapiSuccessAmount: Number(orders.successAmount || 0),
       jsapiCallbacks: Number(callbacks.total || 0),
-      fallbackCount: events.filter((item) => String(item.eventType) === 'FALLBACK_JSAPI').reduce((sum, item) => sum + Number(item.count || 0), 0)
+      fallbackCount: eventCount('FALLBACK_JSAPI'),
+      wakeAttempted: eventCount('WAKE_ATTEMPTED'),
+      wakeAppSwitched: eventCount('WAKE_APP_SWITCHED'),
+      handoffTickets: eventCount('HANDOFF_TICKET_CREATED'),
+      bridgeOpened: eventCount('HANDOFF_BRIDGE_OPENED'),
+      previewRedirected: eventCount('HANDOFF_PREVIEW_REDIRECTED'),
+      handoffFailed: eventCount('HANDOFF_TICKET_FAILED') + eventCount('HANDOFF_BRIDGE_FAILED'),
+      gatewayFallback: eventCount('WAKE_GATEWAY_FALLBACK')
     },
     events: events.map((item) => ({ ...item, count: Number(item.count || 0), avgDurationMs: Math.round(Number(item.avgDurationMs || 0)) })),
     recent

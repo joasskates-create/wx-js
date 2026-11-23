@@ -42,24 +42,28 @@ async function uploadImage(accessToken: string, dataUrl: string, filename: strin
 export interface ArticleDraftResult { draftMediaId: string; previewUrl: string | null; qrMediaUrl: string; coverMediaId?: string; }
 
 async function getDraftPreviewUrl(accessToken: string, draftMediaId: string): Promise<string | null> {
-  try {
-    const draft = await readWechatJson(await fetch(`https://api.weixin.qq.com/cgi-bin/draft/get?access_token=${encodeURIComponent(accessToken)}`, {
-      method: "POST",
-      headers: jsonHeaders(),
-      body: JSON.stringify({ media_id: draftMediaId })
-    }));
-    const item = Array.isArray(draft.news_item) ? draft.news_item[0] : undefined;
-    let url = typeof item?.url === "string" ? item.url.trim() : "";
-    if (!/^https?:\/\//i.test(url)) return null;
-    // WeChat draft/get returns the temp-article link as http://; upgrade to
-    // https:// so the in-WeChat WebView will actually load it.
-    if (/^http:\/\//i.test(url)) url = url.replace(/^http:/i, "https:");
-    return url;
-  } catch {
-    // The draft is already created. Some account permissions/API versions do
-    // not expose a URL here, so keep the article and use the normal fallback.
-    return null;
+  const delays = [0, 500, 1_000, 2_000, 4_000, 8_000];
+  for (const delay of delays) {
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+    try {
+      const draft = await readWechatJson(await fetch(`https://api.weixin.qq.com/cgi-bin/draft/get?access_token=${encodeURIComponent(accessToken)}`, {
+        method: "POST",
+        headers: jsonHeaders(),
+        body: JSON.stringify({ media_id: draftMediaId })
+      }));
+      const item = Array.isArray(draft.news_item) ? draft.news_item[0] : undefined;
+      let url = typeof item?.url === "string" ? item.url.trim() : "";
+      if (!/^https?:\/\//i.test(url)) continue;
+      // WeChat draft/get may return the temp-article link as http://; upgrade
+      // it so the external handoff and in-WeChat WebView use HTTPS.
+      if (/^http:\/\//i.test(url)) url = url.replace(/^http:/i, "https:");
+      if (/^https:\/\/mp\.weixin\.qq\.com\//i.test(url)) return url;
+    } catch {
+      // Temporary propagation/API errors are retried with backoff. The caller
+      // still retains its JSAPI fallback if the preview never becomes ready.
+    }
   }
+  return null;
 }
 
 export async function createPublicAccountArticle(input: {

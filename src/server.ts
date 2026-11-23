@@ -8,7 +8,7 @@ import {
   chooseChannel, closeOrder, createAuditLog, createApp, updateApp, getWechatApp, getAppVerifyFile, getMerchantPaymentMethod, createWechatOAuthState, getWechatOAuthState, completeWechatOAuthState, consumeWechatOAuthToken, bindPublicPaymentOpenid, createChannel, createConfiguredChannel, createMerchant, createMerchantUser, createRouteRule, createSubject, db, ensureDemoChannel, findOrderByClientRequest, createClientMerchant, listClientMerchants, getClientMerchant, updateClientMerchant, adjustClientMerchantBalance, appendClientMerchantLedger, listClientMerchantLedger, setClientMerchantCodeMerchants, listClientMerchantCodeMerchants, listMerchantAgents, listMerchantGroups, createMerchantAgent, createMerchantGroup, updateClientMerchantPassword, setClientMerchantTwoFactor, searchMerchantLedger, searchMerchantPrepaidRecords, adjustMerchantBalance, transferMerchantBalanceToCredit,
   createReconciliationRun, getAdminOperationalReport, getChannel, getChannelPreflight, getDataConsistencyReport, getMonitoring, getOrder, getOverview, getRefundedAmount, getReconciliationRun, getSettlementDifference, getQrSettlementReport, importReconciliationBill, insertOrder, insertPaymentAttempt, listQrMonitoring, listQrOrders, runQrMonitorPass, assignQrCollectionCodes, insertRefund, listQrCollectionCodes, createQrCollectionCode, updateQrCollectionCode, deleteQrCollectionCode, listQrChannelSettings, updateQrChannelSetting, reserveQrCodeForOrder, isQrChannelEnabled,
   authenticateClientMerchant, authenticatePlatformMerchant, checkMerchantOrderRisk, checkClientMerchantOrderRisk, checkChannelOrderRisk, changeMerchantUserPassword, createPlatformMerchant, createSettlementStatement, enqueueMerchantWebhook, listClientMerchantChannels, setClientMerchantChannels, listMerchantChannelIds, listChannelPlatformMerchants, listMerchantBoundChannelIds, listMerchantChannels, listMerchantChannelSettings, listPlatformMerchantWechatMerchants, listPlatformMerchantSubjects, listPlatformMerchantApps, isPlatformMerchantChannelAuthorized, updateMerchantChannelSetting, listChannelMerchants, getChannelStats, getWechatMerchantStats, getMerchantSubMerchantStats, listMerchantSubMerchantOrders, getMerchantChannelStats, resolveChannelMerchant, setChannelPlatformMerchants, setMerchantChannelBindings, updateChannelMerchantBinding, getMerchantOverview, getMerchantOperationalReport, getRefund, getSettlementReport, getSettlementStatement, getPlatformMerchantDetail, getMerchantUserByUsername, getExceptionMetrics, getOrderDetail, getMerchantFinancialOverview, getMerchantQuotaPolicy, listMerchantLedgerEntries, listMerchantCreditLedger, listMerchantAlertEvents, updateMerchantQuotaPolicy, adjustMerchantCredit, getChannelRiskPolicy, updateChannelRiskPolicy, listApps, listAuditLogs, listCallbackTasks, listChannelHealth, listChannels, listMerchantOrders, listMerchantRefunds, listMerchants, listOrders, listPlatformMerchants, listRefunds, listReconciliationRuns, listRouteRules, listRouteRuleVersions, listSettlementStatements, listSubjects, listWebhookEvents, recordCallbackTask, recordChannelHealth, recordOrderExceptionAction, listOrderExceptionActions, resetChannelCircuit, restoreRouteRuleVersion, rotateClientMerchantApiKey, rotatePlatformMerchantApiKey, searchOrders, selectChannelMerchant, chooseRoutedPaymentTarget, getRouteAllocation, listPlatformMerchantWechatBindings, setPlatformMerchantWechatBindings, listChannelPlatformMerchantPolicies, setChannelPlatformMerchantPolicies, reserveRouteCapacity, releaseRouteCapacity, reassignOrderRoute, setAppStatus, setChannelStatus, setMerchantChannels, setMerchantStatus, setMerchantMonitorLock, forceEnableMerchantStatus, updateMerchantSettings, updateMerchant, deleteMerchant, cloneMerchant, setPlatformMerchantStatus, setRouteRuleStatus, updateConfiguredChannel, createRoutingChannel, updateRoutingChannel, updateMerchantRiskPolicy, updatePlatformMerchantProfile, updateMerchantUserPassword, updateOrderPayment, updateRouteRule, updateSettlementStatementStatus, updateRefundApproval, updateRefundStatus, upsertMerchantWebhook, getMerchantWebhook, listMerchantWebhookDeliveries, listAllMerchantWebhookDeliveries, requeueMerchantWebhookDelivery, claimRefundApproval, restoreRefundApproval, resolveReconciliationItem, reserveMerchantQuota, releaseMerchantQuota, getBotSettings, saveBotSettings, listBotRecipientGroups, upsertBotRecipientGroup, deleteBotRecipientGroup, listBotDeliveryLogs, listBotOperators, upsertBotOperator, deleteBotOperator, isBotOperator, bindBotMerchant, listBotBoundMerchants, addBotLedgerEntry, listBotLedgerEntries, removeLastBotLedgerEntry, clearBotLedger
-  , createPublicPaymentEntry, getPublicPaymentEntryByTokenHash, getPublicPaymentEntryByOrder, getPublicPaymentEntryToken, updatePublicPaymentEntry, expirePublicPaymentEntries, listPublicPaymentEntries, upsertWechatArticleDraft, getWechatArticleDraftByOrder, recordPublicPaymentEvent, getPublicPaymentMonitoring, createMemberBlock, getMemberBlock, listMemberBlocks, findActiveMemberBlock, revokeMemberBlock, updateChannelRouteStrategy
+  , createPublicPaymentEntry, getPublicPaymentEntryByTokenHash, getPublicPaymentEntryByOrder, getPublicPaymentEntryToken, updatePublicPaymentEntry, expirePublicPaymentEntries, listPublicPaymentEntries, upsertWechatArticleDraft, getWechatArticleDraftByOrder, recordPublicPaymentEvent, getPublicPaymentMonitoring, createWechatHandoffTicket, getWechatHandoffTicketByHash, consumeWechatHandoffTicket, createMemberBlock, getMemberBlock, listMemberBlocks, findActiveMemberBlock, revokeMemberBlock, updateChannelRouteStrategy
 } from "./db.js";
 import { processRefundWebhookPayload, processWebhookPayload } from "./payment/webhook-service.js";
 import { credentialConfigured, listCredentialRefs, upsertCredential } from "./security/credentials.js";
@@ -326,6 +326,67 @@ app.get("/api/v1/public-pay/:token", (req, res) => {
   const status = found.entry.status === "ACTIVE" && new Date(found.entry.expiresAt).getTime() <= Date.now() ? "EXPIRED" : found.entry.status;
   const article = draft ? { status: draft.status, previewUrl: draft.previewUrl, fallbackToJsapi: draft.status === "FAILED" || !draft.previewUrl } : { status: "PENDING", previewUrl: null, fallbackToJsapi: false };
   return res.json({ data: { order: publicOrder(found.order), entry: { status, expiresAt: found.entry.expiresAt, payUrl: `${publicBaseUrlForRequest(req)}/public-pay/${encodeURIComponent(String(req.params.token))}`, qrDataUrl: found.entry.qrDataUrl }, article } });
+});
+
+function validWechatPreviewUrl(value: unknown): string | undefined {
+  try {
+    const url = new URL(String(value || ""));
+    if (url.protocol !== "https:") return undefined;
+    if (!/^mp\.weixin\.qq\.com$/i.test(url.hostname)) return undefined;
+    return url.toString();
+  } catch { return undefined; }
+}
+
+app.post("/api/v1/public-pay/:token/handoff", (req, res) => {
+  const found = publicEntryFromRequestToken(String(req.params.token));
+  if (!found.entry || !found.order) return res.status(404).json({ error: "PUBLIC_PAYMENT_ENTRY_NOT_FOUND" });
+  if (found.entry.status !== "ACTIVE" || new Date(found.entry.expiresAt).getTime() <= Date.now()) return res.status(410).json({ error: "PUBLIC_PAYMENT_ENTRY_EXPIRED" });
+  const previewUrl = validWechatPreviewUrl(getWechatArticleDraftByOrder(found.order.id)?.previewUrl);
+  if (!previewUrl) {
+    recordPublicPaymentEvent({ orderId: found.order.id, entryId: found.entry.id, eventType: "HANDOFF_TICKET_FAILED", errorCode: "PREVIEW_URL_UNAVAILABLE" });
+    return res.status(409).json({ error: "PREVIEW_URL_UNAVAILABLE", message: "公众号预览链接尚未准备好" });
+  }
+  const rawTicket = crypto.randomBytes(32).toString("base64url");
+  const ticketHash = crypto.createHash("sha256").update(rawTicket, "utf8").digest("hex");
+  const expiresAt = new Date(Math.min(new Date(found.order.expireAt).getTime(), Date.now() + 2 * 60_000)).toISOString();
+  const ticket = createWechatHandoffTicket({ orderId: found.order.id, entryId: found.entry.id, ticketHash, previewUrl, expiresAt });
+  recordPublicPaymentEvent({ orderId: found.order.id, entryId: found.entry.id, eventType: "HANDOFF_TICKET_CREATED", detail: { handoffId: ticket.id, expiresAt } });
+  return res.json({ data: { ticket: rawTicket, handoffId: ticket.id, bridgeUrl: `${publicBaseUrlForRequest(req)}/wechat-bridge/${encodeURIComponent(rawTicket)}`, previewUrl, expiresAt } });
+});
+
+app.post("/api/v1/public-pay/:token/telemetry", (req, res) => {
+  const found = publicEntryFromRequestToken(String(req.params.token));
+  if (!found.entry || !found.order) return res.status(404).json({ error: "PUBLIC_PAYMENT_ENTRY_NOT_FOUND" });
+  const parsed = z.object({
+    eventType: z.enum(["WAKE_ATTEMPTED", "WAKE_APP_SWITCHED", "WAKE_GATEWAY_FALLBACK", "PREVIEW_NAVIGATION_ATTEMPTED", "COPY_LINK_USED"]),
+    durationMs: z.number().int().nonnegative().max(120_000).optional(),
+    detail: z.record(z.string(), z.unknown()).optional()
+  }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "INVALID_PUBLIC_PAYMENT_TELEMETRY" });
+  recordPublicPaymentEvent({ orderId: found.order.id, entryId: found.entry.id, eventType: parsed.data.eventType, durationMs: parsed.data.durationMs, detail: { ...(parsed.data.detail || {}), ip: String(req.ip || req.socket.remoteAddress || "").replace(/^::ffff:/, ""), userAgent: String(req.get("user-agent") || "").slice(0, 300) } });
+  return res.status(204).end();
+});
+
+app.get("/wechat-bridge/:ticket", (req, res) => {
+  const rawTicket = String(req.params.ticket || "");
+  if (!/^[A-Za-z0-9_-]{32,128}$/.test(rawTicket)) return res.status(404).send("中转链接无效");
+  const ticketHash = crypto.createHash("sha256").update(rawTicket, "utf8").digest("hex");
+  const startedAt = Date.now();
+  const existingTicket = getWechatHandoffTicketByHash(ticketHash);
+  const ticket = consumeWechatHandoffTicket(ticketHash);
+  if (!ticket) {
+    recordPublicPaymentEvent({ orderId: existingTicket?.orderId, entryId: existingTicket?.entryId, eventType: "HANDOFF_BRIDGE_FAILED", errorCode: "TICKET_INVALID_OR_EXPIRED", detail: { handoffId: existingTicket?.id, userAgent: String(req.get("user-agent") || "").slice(0, 300) } });
+    return res.status(410).send("中转链接已失效，请返回订单页面重新打开");
+  }
+  const previewUrl = validWechatPreviewUrl(ticket.previewUrl);
+  if (!previewUrl) {
+    recordPublicPaymentEvent({ orderId: ticket.orderId, entryId: ticket.entryId, eventType: "HANDOFF_BRIDGE_FAILED", errorCode: "PREVIEW_URL_INVALID", detail: { handoffId: ticket.id } });
+    return res.status(502).send("公众号预览链接无效，请返回订单页面重试");
+  }
+  recordPublicPaymentEvent({ orderId: ticket.orderId, entryId: ticket.entryId, eventType: "HANDOFF_BRIDGE_OPENED", durationMs: Date.now() - startedAt, detail: { handoffId: ticket.id, userAgent: String(req.get("user-agent") || "").slice(0, 300) } });
+  recordPublicPaymentEvent({ orderId: ticket.orderId, entryId: ticket.entryId, eventType: "HANDOFF_PREVIEW_REDIRECTED", detail: { handoffId: ticket.id, previewHost: "mp.weixin.qq.com" } });
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  return res.redirect(302, previewUrl);
 });
 
 app.get("/api/v1/public-pay/:token/oauth/start", (req, res) => {

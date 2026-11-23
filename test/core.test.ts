@@ -167,6 +167,17 @@ describe("core payment data flows", () => {
     expect(store.listRecoveryOrders().some((item) => item.platformOrderNo === qrNo)).toBe(false);
   });
 
+  it("creates and consumes a one-time WeChat handoff ticket", () => {
+    const orderNo = `P-handoff-${process.pid}`;
+    store.insertOrder({ merchantId: ids.platformMerchant, platformOrderNo: orderNo, channelId: ids.channel, channelOutTradeNo: `T-handoff-${process.pid}`, amount: 100, description: "handoff", clientRequestNo: `C-handoff-${process.pid}`, expireAt: new Date(Date.now() + 60_000).toISOString() });
+    const order = store.getOrder(orderNo)!;
+    const entry = store.createPublicPaymentEntry({ orderId: order.id, tokenHash: `handoff-token-${process.pid}`, token: `handoff-token-${process.pid}`, pagePath: "/public-pay", expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    const ticket = store.createWechatHandoffTicket({ orderId: order.id, entryId: entry.id, ticketHash: `handoff-hash-${process.pid}`, previewUrl: "https://mp.weixin.qq.com/s/test", expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    expect(ticket.status).toBe("ACTIVE");
+    expect(store.consumeWechatHandoffTicket(`handoff-hash-${process.pid}`)?.status).toBe("USED");
+    expect(store.consumeWechatHandoffTicket(`handoff-hash-${process.pid}`)).toBeUndefined();
+  });
+
   it("manages WeChat merchant enablement and daily amount limits", () => {
     expect(store.updateMerchantSettings(ids.merchant, { dailyAmountLimit: 100 })?.dailyAmountLimit).toBe(100);
     expect(() => store.chooseRoutedPaymentTarget(101, [ids.channel])).toThrow("NO_ROUTE_TARGET_AVAILABLE");
