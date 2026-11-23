@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>微信支付收银台</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell cashier-home">
+      <section class="card cashier-selector">
+        <div class="eyebrow">WECHAT PAY · CASHIER</div>
+        <h1>选择支付方式</h1>
+        <p class="muted">不同支付方式使用独立收银台，按使用场景选择即可。</p>
+        <a class="admin-link" href="/admin">进入后台管理</a>
+
+        <div class="cashier-method-grid">
+          <a class="cashier-method-card" href="/cashier/native">
+            <span class="cashier-method-icon">⌗</span>
+            <strong>Native 扫码支付</strong>
+            <small>生成微信支付二维码，适合电脑端或外部浏览器收款。</small>
+            <span class="cashier-method-action">进入 Native 收银台 →</span>
+          </a>
+          <a class="cashier-method-card" href="/cashier/jsapi">
+            <span class="cashier-method-icon">◉</span>
+            <strong>公众号支付</strong>
+            <small>在微信内完成网页授权，并直接调起微信支付收银台。</small>
+            <span class="cashier-method-action">进入公众号收银台 →</span>
+          </a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

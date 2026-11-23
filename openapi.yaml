@@ -1,0 +1,405 @@
+openapi: 3.0.3
+info:
+  title: WeChat Multi-Channel Pay API
+  version: 0.1.0
+  description: 多主体、多公众号、多商户号的统一收银与码商结算接口。真实微信支付联调由部署配置控制。
+servers:
+  - url: http://localhost:3000
+security: []
+components:
+  securitySchemes:
+    merchantKey:
+      type: apiKey
+      in: header
+      name: X-Merchant-Key
+    merchantSignature:
+      type: apiKey
+      in: header
+      name: X-Merchant-Signature
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: admin_session
+  schemas:
+    Order:
+      type: object
+      properties:
+        id: { type: string }
+        platformOrderNo: { type: string }
+        amount: { type: integer, description: 金额，单位分 }
+        description: { type: string }
+        status: { type: string, enum: [CREATED, ROUTED, QR_CREATED, PAYING, SUCCESS, FAILED, UNKNOWN, CLOSED] }
+        codeUrl: { type: string, nullable: true }
+        qrDataUrl: { type: string, nullable: true }
+        expireAt: { type: string, format: date-time }
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+paths:
+  /health:
+    get:
+      summary: 存活检查
+      responses:
+        '200': { description: 服务运行中 }
+  /ready:
+    get:
+      summary: 就绪检查
+      responses:
+        '200': { description: 数据库和支付配置可用 }
+        '503': { description: 服务未就绪 }
+  /api/v1/orders:
+    post:
+      summary: 创建固定金额扫码订单
+      security:
+        - merchantKey: []
+        - merchantSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientRequestNo, amount]
+              properties:
+                clientRequestNo: { type: string, maxLength: 64 }
+                userId: { type: string, maxLength: 128, description: 风控用户标识，可通过 X-User-Id 请求头传递 }
+                amount: { type: integer, minimum: 1 }
+                description: { type: string }
+                paymentMethod: { type: string, enum: [NATIVE, JSAPI], default: NATIVE }
+                collectionMode: { type: string, enum: [NATIVE, QR], default: NATIVE }
+                entryMode: { type: string, enum: [DIRECT, PUBLIC_ACCOUNT_ARTICLE], default: DIRECT, description: 公众号临时图文入口时必须使用 JSAPI }
+                oauthToken: { type: string, description: OAuth 回调后的一次性令牌（直接 JSAPI 流程） }
+                channelId: { type: string }
+                deviceType: { type: string, enum: [ANDROID, IOS, WINDOWS, MAC, LINUX, UNKNOWN] }
+                deviceIp: { type: string, maxLength: 64 }
+                deviceCountry: { type: string, maxLength: 32 }
+                deviceProvince: { type: string, maxLength: 64 }
+                deviceCity: { type: string, maxLength: 64 }
+                deviceNo: { type: string, maxLength: 128 }
+      responses:
+        '201': { description: 订单创建成功 }
+        '409': { description: 通道不可用或重复请求冲突 }
+  /api/v1/public-pay/{token}:
+    get:
+      summary: 查询订单专属公众号支付入口
+      parameters:
+        - { in: path, name: token, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 入口和订单状态 }
+        '404': { description: 入口不存在 }
+  /api/v1/public-pay/{token}/oauth/start:
+    get:
+      summary: 跳转微信公众号 snsapi_base 授权
+      parameters:
+        - { in: path, name: token, required: true, schema: { type: string } }
+      responses:
+        '302': { description: 微信 OAuth 授权跳转 }
+  /api/v1/public-pay/{token}/pay:
+    post:
+      summary: 使用一次性 OAuth 令牌创建 JSAPI V2 订单
+      parameters:
+        - { in: path, name: token, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [oauthToken]
+              properties:
+                oauthToken: { type: string }
+      responses:
+        '200': { description: JSAPI 调起参数 }
+        '409': { description: 订单不可支付 }
+  /api/v1/orders/{id}:
+    get:
+      summary: 查询订单
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 订单详情 }
+        '404': { description: 订单不存在 }
+  /api/v1/orders/{id}/refunds:
+    post:
+      summary: 发起退款
+      security:
+        - adminSession: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: header, name: X-Idempotency-Key, required: false, schema: { type: string, maxLength: 64 } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount: { type: integer, minimum: 1 }
+                reason: { type: string }
+                refundNo: { type: string }
+      responses:
+        '201': { description: 退款已提交 }
+        '409': { description: 退款冲突或金额超限 }
+  /api/v1/merchant/refunds:
+    get:
+      summary: 查询当前码商退款
+      security:
+        - merchantKey: []
+      responses:
+        '200': { description: 退款列表 }
+  /api/v1/merchant/channels:
+    get:
+      summary: 查询码商可用通道
+      security:
+        - merchantKey: []
+      responses:
+        '200': { description: 通道白名单 }
+  /api/v1/merchant/orders/{id}:
+    get:
+      summary: 查询码商自己的订单详情
+      security:
+        - merchantKey: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 订单详情 }
+        '404': { description: 订单不属于当前码商 }
+    post:
+      summary: 码商发起自己的订单退款
+      security:
+        - merchantKey: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+        - { in: header, name: X-Idempotency-Key, required: false, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount: { type: integer, minimum: 1 }
+                reason: { type: string }
+                refundNo: { type: string }
+      responses:
+        '202': { description: 退款申请已提交，等待平台审核 }
+  /api/v1/merchant/report/operations:
+    get:
+      summary: 查询码商经营日报
+      security:
+        - merchantKey: []
+      responses:
+        '200': { description: 按日期和通道统计订单、成功率、交易额和退款 }
+  /api/v1/merchant/webhook:
+    get:
+      summary: 查询码商回调配置
+      security:
+        - merchantKey: []
+      responses:
+        '200': { description: 回调配置（密钥脱敏） }
+    put:
+      summary: 更新码商回调配置
+      security:
+        - merchantKey: []
+      responses:
+        '200': { description: 配置已更新 }
+  /api/v1/merchant/webhook/deliveries:
+    get:
+      summary: 查询码商回调投递记录
+      security:
+        - merchantKey: []
+      responses:
+        '200': { description: 回调投递记录 }
+  /api/v1/merchant/webhook/test:
+    post:
+      summary: 发送一条码商回调测试事件
+      security:
+        - merchantKey: []
+      responses:
+        '202': { description: 测试事件已进入投递队列 }
+  /api/v1/merchant/auth/login:
+    post:
+      summary: 码商账号密码登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200': { description: 登录成功并写入 HttpOnly 会话 Cookie }
+        '401': { description: 账号或密码错误 }
+  /api/v1/admin/refunds/{refundNo}/approve:
+    post:
+      summary: 审核通过并执行退款
+      security:
+        - adminSession: []
+      responses:
+        '200': { description: 退款已提交至通道 }
+  /api/v1/admin/refunds/{refundNo}/reject:
+    post:
+      summary: 驳回退款申请
+      security:
+        - adminSession: []
+      responses:
+        '200': { description: 退款申请已驳回 }
+  /api/v1/admin/platform-merchants/{id}/channels:
+    get:
+      summary: 查询码商通道白名单
+      security:
+        - adminSession: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 通道列表 }
+    put:
+      summary: 设置码商通道白名单
+      security:
+        - adminSession: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channelIds]
+              properties:
+                channelIds: { type: array, items: { type: string } }
+      responses:
+        '200': { description: 已更新 }
+  /api/v1/admin/platform-merchants/{id}:
+    get:
+      summary: 查询码商详情、通道、订单和运营指标
+      security: [{ adminSession: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 码商详情 }
+        '404': { description: 码商不存在 }
+  /api/v1/admin/channels/{id}/preflight:
+    get:
+      summary: 通道配置预检
+      security:
+        - adminSession: []
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 预检结果 }
+  /api/v1/admin/routing/preview:
+    post:
+      summary: 路由模拟
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: integer, minimum: 1 }
+                channelId: { type: string }
+      responses:
+        '200': { description: 命中的通道和预检状态 }
+  /api/v1/admin/platform-merchants/{id}/risk:
+    get:
+      summary: 查询码商风控限额和当日用量
+      security: [{ adminSession: [] }]
+      responses:
+        '200': { description: 风控策略 }
+    patch:
+      summary: 更新码商风控限额
+      security: [{ adminSession: [] }]
+      responses:
+        '200': { description: 风控策略已更新 }
+  /api/v1/admin/merchant-webhook-deliveries:
+    get:
+      summary: 查询全平台码商回调投递记录
+      security: [{ adminSession: [] }]
+      responses:
+        '200': { description: 回调投递记录 }
+  /api/v1/admin/merchant-webhook-deliveries/{id}/retry:
+    post:
+      summary: 重新投递码商死信回调
+      security: [{ adminSession: [] }]
+      responses:
+        '200': { description: 已重新入队 }
+  /api/v1/admin/platform-merchants/{id}/webhook/test:
+    post:
+      summary: 发送码商回调测试事件
+      security: [{ adminSession: [] }]
+      responses:
+        '202': { description: 测试事件已入队 }
+  /api/v1/admin/platform-merchants/{id}/users/{userId}/password:
+    patch:
+      summary: 重置码商后台账号密码
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, format: password, minLength: 8 }
+      responses:
+        '200': { description: 密码已重置 }
+  /api/v1/admin/platform-merchants/{id}/users:
+    post:
+      summary: 创建码商后台账号
+      security: [{ adminSession: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password, minLength: 8 }
+                role: { type: string, enum: [OWNER, OPERATOR, FINANCE, VIEWER] }
+      responses:
+        '201': { description: 账号已创建 }
+  /api/v1/admin/reconciliation/items/{itemId}/resolve:
+    post:
+      summary: 处理对账差异项
+      security: [{ adminSession: [] }]
+      parameters:
+        - { in: path, name: itemId, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, note]
+              properties:
+                status: { type: string, enum: [RESOLVED, IGNORED] }
+                note: { type: string, maxLength: 500 }
+      responses:
+        '200': { description: 差异项已处理 }
+  /webhooks/wechatpay/{channelId}:
+    post:
+      summary: 微信支付交易回调
+      parameters:
+        - { in: path, name: channelId, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 回调已接收 }
+  /webhooks/wechatpay/{channelId}/refund:
+    post:
+      summary: 微信支付退款回调
+      parameters:
+        - { in: path, name: channelId, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 回调已接收 }

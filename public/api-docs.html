@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>API 对接文档 · 惠友支付</title>
+  <style>
+    :root{font-family:Inter,"Microsoft YaHei",sans-serif;color:#182230;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}.top{background:#101828;color:#fff;padding:28px max(24px,calc((100% - 1180px)/2));display:flex;justify-content:space-between;align-items:center;gap:20px}.top h1{margin:0;font-size:22px}.top p{margin:7px 0 0;color:#b7c4d8;font-size:13px}.top a{color:#d6e6ff;text-decoration:none}.wrap{max-width:1180px;margin:24px auto;padding:0 20px;display:grid;grid-template-columns:220px 1fr;gap:20px}.side,.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 6px 20px rgba(28,51,84,.05)}.side{padding:13px;height:max-content;position:sticky;top:20px}.side a{display:block;padding:10px 12px;color:#526176;text-decoration:none;border-radius:8px;font-size:13px}.side a:hover{background:#edf5ff;color:#1469d4}.card{padding:24px;margin-bottom:18px}.card h2{margin:0 0 10px;font-size:18px}.card h3{margin:22px 0 8px;font-size:15px}.card p,.card li{font-size:13px;line-height:1.8;color:#667085}.notice{padding:12px 14px;background:#f5f9ff;border:1px solid #d8e8ff;border-radius:9px;color:#405b7e;font-size:13px;line-height:1.7}.endpoint{margin:12px 0;padding:12px;border:1px solid #edf0f5;border-radius:9px}.method{display:inline-block;border-radius:5px;padding:3px 7px;margin-right:8px;background:#eaf3ff;color:#1264cc;font:600 11px ui-monospace,monospace}.path{font:13px ui-monospace,monospace;color:#344054}.code{margin:9px 0 0;padding:13px;background:#101828;color:#d6e7ff;border-radius:8px;overflow:auto;font:12px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre}.copy-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px}.copy{border:1px solid #b9d5ff;background:#f5f9ff;color:#1469d4;border-radius:7px;padding:6px 10px;cursor:pointer}.muted{color:#98a2b3;font-size:12px}@media(max-width:760px){.wrap{grid-template-columns:1fr}.side{position:static}.top{padding:22px 18px}.top a{display:none}}
+  </style>
+</head>
+<body>
+  <header class="top"><div><h1>惠友支付 API 对接文档</h1><p>统一收款下单、查单、回调和退款接口说明</p></div><a href="/admin">返回管理后台</a></header>
+  <main class="wrap">
+    <nav class="side"><a href="#quick">快速开始</a><a href="#auth">认证方式</a><a href="#create">创建订单</a><a href="#query">订单查询</a><a href="#callback">回调通知</a><a href="#status">错误与状态</a></nav>
+    <div>
+      <section class="card" id="quick"><h2>快速开始</h2><div class="notice">请在后台“商户管理 → 更多 → 对接信息”复制接口地址和商户编码。API Key 只在创建或重置时显示一次，请保存在服务端环境变量中。</div><ol><li>准备商户编码和 API Key。</li><li>使用服务端调用创建订单接口，保存返回的平台订单号和支付二维码。</li><li>用户支付后，以回调通知为准；回调异常时可主动查单。</li></ol></section>
+      <section class="card" id="auth"><h2>认证方式</h2><p>所有开放接口请求都应携带以下请求头：</p><pre class="code">x-merchant-code: YOUR_MERCHANT_CODE
+x-merchant-key: YOUR_API_KEY
+content-type: application/json</pre><p class="muted">如果后台启用了签名校验，还需按接口文档补充 x-merchant-timestamp、x-merchant-nonce 和 x-merchant-signature。API Key 请勿放在浏览器、前端脚本或公开仓库中。</p></section>
+      <section class="card" id="create"><h2>创建订单</h2><div class="endpoint"><span class="method">POST</span><span class="path">/api/v1/orders</span><div class="copy-row"><span class="muted">请求示例</span><button class="copy" data-copy="create-example">复制示例</button></div><pre class="code" id="create-example">{
+  "amount": 100,
+  "description": "测试订单",
+  "clientRequestNo": "ORDER_202611070001",
+  "paymentMethod": "NATIVE",
+  "collectionMode": "NATIVE"
+}</pre></div><p>金额单位为分。<code>collectionMode=NATIVE</code> 只走微信 Native 统一下单并生成动态 <code>codeUrl</code>；<code>collectionMode=QR</code> 只走已导入的挂码，不能与公众号支付组合。公众号支付传入 <code>paymentMethod=JSAPI</code>，首次请求会返回微信授权地址，授权回跳后携带一次性 <code>oauthToken</code> 重试原请求。</p></section>
+      <section class="card" id="query"><h2>订单查询</h2><div class="endpoint"><span class="method">GET</span><span class="path">/api/v1/orders/{platformOrderNo}</span><div class="copy-row"><span class="muted">返回字段重点：status、amount、transactionId、paidAt</span><button class="copy" data-copy="query-path">复制地址</button></div><pre class="code" id="query-path">/api/v1/orders/{platformOrderNo}</pre></div></section>
+      <section class="card" id="callback"><h2>回调通知</h2><p>平台会向订单创建时的通知地址发送支付结果。业务方必须先校验签名，再按订单号幂等处理；收到通知后返回 HTTP 200，重复通知不得重复入账。</p><pre class="code">{
+  "event": "PAYMENT_SUCCESS",
+  "platformOrderNo": "P...",
+  "amount": 100,
+  "status": "SUCCESS",
+  "transactionId": "wx..."
+}</pre></section>
+      <section class="card" id="status"><h2>错误与状态</h2><ul><li><strong>SUCCESS</strong>：支付成功。</li><li><strong>QR_CREATED / PAYING</strong>：等待支付。</li><li><strong>UNKNOWN</strong>：状态待查，建议稍后重试查询。</li><li><strong>FAILED / CLOSED</strong>：订单失败或已关闭。</li><li>401：认证信息错误；403：商户或通道无权限；429：触发风控或频率限制。</li></ul></section>
+    </div>
+  </main>
+  <script>document.querySelectorAll('[data-copy]').forEach((button)=>button.addEventListener('click',async()=>{const node=document.getElementById(button.dataset.copy);try{await navigator.clipboard.writeText(node.textContent);button.textContent='已复制';setTimeout(()=>button.textContent='复制示例',1200)}catch{button.textContent='请手动复制'}}));</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>码商工作台</title>
+    <link rel="stylesheet" href="/merchant.css" />
+  </head>
+  <body>
+    <div id="login" class="login"><form id="loginForm"><div class="logo">⌁</div><h1>码商工作台</h1><p>使用平台创建的账号和密码登录</p><label>登录账号<input name="username" placeholder="zhangsan" autocomplete="username" required /></label><label>登录密码<input name="password" type="password" placeholder="至少 8 位" autocomplete="current-password" required /></label><button>登录工作台</button><div id="loginMessage" class="message"></div></form></div>
+    <div id="app" class="merchant-app hidden">
+      <aside class="merchant-sidebar">
+        <div class="merchant-brand"><span class="logo">⌁</span><div><strong>惠友支付</strong><small>码商工作台</small></div></div>
+        <nav class="merchant-nav" aria-label="码商后台导航">
+          <div class="merchant-nav-label">工作台</div>
+          <button class="merchant-nav-item active" data-merchant-view="overview"><span>⌂</span>首页</button>
+          <button class="merchant-nav-item" data-merchant-view="orders"><span>▤</span>订单管理</button>
+          <div class="merchant-nav-label">收款与结算</div>
+          <button class="merchant-nav-item" data-merchant-view="channels"><span>⌘</span>通道管理</button>
+          <button class="merchant-nav-item" data-merchant-view="qr-codes"><span>▣</span>收款码管理</button>
+          <div class="merchant-nav-label">资源管理</div>
+          <button class="merchant-nav-item" data-merchant-view="subjects"><span>▣</span>主体管理</button>
+          <button class="merchant-nav-item" data-merchant-view="apps"><span>◈</span>AppID 管理</button>
+          <button class="merchant-nav-item" data-merchant-view="merchants"><span>▤</span>商户号管理</button>
+          <button class="merchant-nav-item" data-merchant-view="settlement"><span>▥</span>结算管理</button>
+          <button class="merchant-nav-item" data-merchant-view="refunds"><span>↩</span>退款管理</button>
+          <div class="merchant-nav-label">服务</div>
+          <button class="merchant-nav-item" data-merchant-view="webhook"><span>◒</span>回调记录</button>
+          <button class="merchant-nav-item" data-merchant-view="security"><span>♙</span>账号安全</button>
+        </nav>
+        <div class="merchant-sidebar-foot"><span class="dot"></span><span>平台统一运营</span></div>
+      </aside>
+      <div class="merchant-sidebar-overlay"></div>
+      <section class="merchant-main">
+        <header class="merchant-topbar"><button id="merchantMenuButton" class="merchant-menu-button" aria-label="菜单">☰</button><div><div class="eyebrow">WECHAT PAY · PARTNER PORTAL</div><h1 id="merchantName">码商工作台</h1><span id="merchantCode"></span></div><div class="merchant-top-actions"><button id="merchantRefresh" class="outline">刷新</button><a class="outline" href="/admin">主后台</a><button id="logout" class="outline">退出登录</button></div></header>
+        <main class="merchant-content">
+          <section id="merchantOverviewPanel" class="merchant-view-section" data-merchant-view-section="overview"><section class="metrics"><article><span>订单总数</span><strong id="orders">0</strong></article><article><span>成功订单</span><strong id="successOrders">0</strong></article><article><span>成功金额</span><strong id="successAmount">¥0.00</strong></article><article><span>退款金额</span><strong id="refundAmount">¥0.00</strong></article></section></section>
+          <section id="orderPanel" class="panel merchant-view-section hidden" data-merchant-view-section="orders"><div class="panel-head"><div><div class="eyebrow">ORDER CENTER</div><h2>我的订单</h2></div><div class="date-tools"><input id="orderQuery" placeholder="订单号 / 微信交易号" /><input id="orderDateFrom" type="date" /><input id="orderDateTo" type="date" /><select id="status"><option value="">全部状态</option><option value="SUCCESS">支付成功</option><option value="QR_CREATED">待支付</option><option value="UNKNOWN">状态未知</option><option value="FAILED">失败</option><option value="CLOSED">已关闭</option></select><button id="searchOrders">查询</button><a class="outline" id="orderExport" href="/api/v1/merchant/orders/export">导出订单</a></div></div><div class="table-wrap"><table><thead><tr><th>平台订单号</th><th>金额</th><th>通道</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="orderRows"></tbody></table></div></section>
+          <section id="settlementPanel" class="panel merchant-view-section hidden" data-merchant-view-section="settlement"><div class="panel-head"><div><div class="eyebrow">SETTLEMENT</div><h2>结算报表</h2></div><div class="date-tools"><input id="dateFrom" type="date" /><input id="dateTo" type="date" /><button id="querySettlement">查询</button></div></div><div class="table-wrap"><table><thead><tr><th>通道</th><th>成功订单</th><th>交易额</th><th>退款</th><th>手续费</th><th>净结算</th></tr></thead><tbody id="settlementRows"></tbody></table></div></section>
+          <section id="statementPanel" class="panel merchant-view-section hidden" data-merchant-view-section="settlement"><div class="panel-head"><div><div class="eyebrow">STATEMENTS</div><h2>结算单</h2></div><div class="date-tools"><span class="hint">核对无误后确认结算单</span><a class="outline" href="/api/v1/merchant/settlements/export">导出结算单</a></div></div><div class="table-wrap"><table><thead><tr><th>结算单</th><th>日期范围</th><th>净结算</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="statementRows"></tbody></table></div></section>
+        </main>
+      </section>
+    </div>
+    <script type="module" src="/merchant.js"></script>
+  </body>
+</html>

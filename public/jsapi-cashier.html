@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>公众号支付收银台</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card">
+        <div class="eyebrow">JSAPI PAY · OFFICIAL ACCOUNT</div>
+        <h1>公众号支付收银台</h1>
+        <p class="muted">请在微信内打开此页面。网页授权获取 OpenID 后，将直接调起公众号支付；本地 Mock 环境会自动模拟授权。</p>
+        <a class="admin-link" href="/">返回支付方式</a>
+        <div class="amounts">
+          <button type="button" data-amount="1000">¥10</button>
+          <button type="button" data-amount="2000">¥20</button>
+          <button type="button" data-amount="5000">¥50</button>
+          <button type="button" data-amount="10000">¥100</button>
+        </div>
+        <form id="jsapi-order-form">
+          <label>收款金额（分）<input id="jsapi-amount" type="number" min="1" value="2000" required /></label>
+          <label>订单说明<input id="jsapi-description" value="公众号支付订单" maxlength="127" /></label>
+          <button class="primary" type="submit">创建公众号支付订单</button>
+        </form>
+        <div id="jsapi-message" class="message"></div>
+      </section>
+      <section id="jsapi-result" class="card result hidden">
+        <div class="status" id="jsapi-status">等待支付</div>
+        <div class="countdown" id="jsapi-countdown">订单有效期：--:--</div>
+        <button id="jsapi-pay" class="primary" type="button">调起微信支付</button>
+        <div class="order-meta" id="jsapi-order-meta"></div>
+        <div class="cashier-actions">
+          <button id="jsapi-refresh-status" class="secondary" type="button">刷新支付状态</button>
+          <button id="jsapi-copy-order" class="secondary" type="button">复制订单号</button>
+          <button id="jsapi-simulate" class="secondary hidden" type="button">模拟支付成功</button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/jsapi-cashier.js"></script>
+  </body>
+</html>

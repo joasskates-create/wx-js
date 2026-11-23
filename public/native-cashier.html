@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Native 扫码收银台</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card">
+        <div class="eyebrow">NATIVE PAY · CASHIER</div>
+        <h1>Native 扫码收银台</h1>
+        <p class="muted">创建独立订单并生成微信支付二维码，扫码后订单状态会自动更新。</p>
+        <a class="admin-link" href="/">返回支付方式</a>
+        <div class="amounts">
+          <button type="button" data-amount="1000">¥10</button>
+          <button type="button" data-amount="2000">¥20</button>
+          <button type="button" data-amount="5000">¥50</button>
+          <button type="button" data-amount="10000">¥100</button>
+        </div>
+        <form id="native-order-form">
+          <label>收款金额（分）<input id="native-amount" type="number" min="1" value="2000" required /></label>
+          <label>订单说明<input id="native-description" value="Native 扫码订单" maxlength="127" /></label>
+          <button class="primary" type="submit">生成 Native 支付二维码</button>
+        </form>
+        <div id="native-message" class="message"></div>
+      </section>
+      <section id="native-result" class="card result hidden">
+        <div class="status" id="native-status">等待支付</div>
+        <div class="countdown" id="native-countdown">订单有效期：--:--</div>
+        <img id="native-qr" alt="微信 Native 支付二维码" />
+        <div class="order-meta" id="native-order-meta"></div>
+        <div class="cashier-actions">
+          <button id="native-refresh-status" class="secondary" type="button">刷新支付状态</button>
+          <button id="native-copy-order" class="secondary" type="button">复制订单号</button>
+          <button id="native-simulate" class="secondary hidden" type="button">模拟支付成功</button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/native-cashier.js"></script>
+  </body>
+</html>
