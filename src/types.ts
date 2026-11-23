@@ -110,6 +110,7 @@ export interface PublicPaymentEntry {
 
 export interface QueryOrderRequest {
   mchId: string;
+  appId: string;
   outTradeNo: string;
   credentialRef: string;
 }

@@ -14,7 +14,10 @@ function xmlUnescape(value: string): string {
 export function parseWechatV2Xml(xml: string): Record<string, string> {
   const result: Record<string, string> = {};
   const source = String(xml || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
-  for (const match of source.matchAll(/<([A-Za-z0-9_]+)>([\s\S]*?)<\/\1>/g)) result[match[1]] = xmlUnescape(match[2]);
+  // Field values never contain nested tags, so restrict the value to [^<]*.
+  // A lazy [\s\S]*? would let the outer <xml> root element swallow the whole
+  // document as a single "xml" key and drop every real field.
+  for (const match of source.matchAll(/<([A-Za-z0-9_]+)>([^<]*)<\/\1>/g)) result[match[1]] = xmlUnescape(match[2]);
   return result;
 }
 
@@ -65,11 +68,11 @@ export class WechatNativeProvider implements PaymentProvider {
   }
 
   async queryOrder(input: QueryOrderRequest): Promise<QueryOrderResponse> {
-    const response = await requestV2("/pay/orderquery", { out_trade_no: input.outTradeNo }, input.mchId, input.credentialRef);
+    const response = await requestV2("/pay/orderquery", { appid: input.appId, out_trade_no: input.outTradeNo }, input.mchId, input.credentialRef);
     return { tradeState: response.trade_state || "UNKNOWN", transactionId: response.transaction_id, raw: response };
   }
 
-  async closeOrder(input: QueryOrderRequest): Promise<void> { await requestV2("/pay/closeorder", { out_trade_no: input.outTradeNo }, input.mchId, input.credentialRef); }
+  async closeOrder(input: QueryOrderRequest): Promise<void> { await requestV2("/pay/closeorder", { appid: input.appId, out_trade_no: input.outTradeNo }, input.mchId, input.credentialRef); }
   async refund(_input: RefundRequest): Promise<{ refundId?: string; status: string; raw?: unknown }> { throw new Error("WECHAT_V2_REFUND_REQUIRES_CERTIFICATE"); }
   async queryRefund(_input: QueryRefundRequest): Promise<{ refundId?: string; status: string; raw?: unknown }> { throw new Error("WECHAT_V2_REFUND_REQUIRES_CERTIFICATE"); }
   async downloadTradeBill(_input: TradeBillRequest): Promise<{ items: TradeBillItem[]; raw?: unknown }> { throw new Error("WECHAT_V2_BILL_REQUIRES_CERTIFICATE"); }

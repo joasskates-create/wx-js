@@ -904,7 +904,9 @@ db.exec(`INSERT INTO order_events (id, order_id, event_type, from_status, to_sta
 
 for (const migration of [
   "ALTER TABLE wechat_oauth_states ADD COLUMN context_id TEXT",
-  "ALTER TABLE wechat_oauth_states ADD COLUMN context_type TEXT"
+  "ALTER TABLE wechat_oauth_states ADD COLUMN context_type TEXT",
+  "ALTER TABLE wechat_apps ADD COLUMN verify_file TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE wechat_apps ADD COLUMN verify_token TEXT NOT NULL DEFAULT ''"
 ]) {
   try { db.exec(migration); } catch (error) { if (!String(error).includes("duplicate column name")) throw error; }
 }
@@ -1734,19 +1736,19 @@ export function listQrOrders(limit = 100): Array<Record<string, unknown>> {
     ORDER BY o.created_at DESC LIMIT ?`).all(safeLimit) as Array<Record<string, unknown>>;
 }
 
-export interface CreateAppInput { id?: string; subjectId: string; appid: string; appType?: string; oauthDomain?: string; jsapiPath?: string; }
+export interface CreateAppInput { id?: string; subjectId: string; appid: string; appType?: string; oauthDomain?: string; jsapiPath?: string; verifyFile?: string; verifyToken?: string; }
 export function createApp(input: CreateAppInput): Record<string, unknown> {
   const id = input.id ?? randomId("app");
   if (!db.prepare("SELECT id FROM merchant_subjects WHERE id = ?").get(input.subjectId)) throw new Error("SUBJECT_NOT_FOUND");
   const existing = db.prepare("SELECT id, subject_id AS subjectId FROM wechat_apps WHERE appid = ?").get(input.appid) as { id: string; subjectId: string } | undefined;
   if (existing) throw new Error(existing.subjectId === input.subjectId ? "APPID_ALREADY_EXISTS" : "APPID_ALREADY_BOUND_TO_OTHER_SUBJECT");
-  db.prepare("INSERT INTO wechat_apps (id, subject_id, appid, app_type, oauth_domain, jsapi_path) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(id, input.subjectId, input.appid, input.appType ?? "SERVICE_ACCOUNT", input.oauthDomain ?? "", input.jsapiPath ?? "");
-  return db.prepare("SELECT a.id, a.subject_id AS subjectId, a.appid, a.app_type AS appType, a.oauth_domain AS oauthDomain, a.jsapi_path AS jsapiPath, a.status FROM wechat_apps a WHERE a.id = ?").get(id) as Record<string, unknown>;
+  db.prepare("INSERT INTO wechat_apps (id, subject_id, appid, app_type, oauth_domain, jsapi_path, verify_file, verify_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .run(id, input.subjectId, input.appid, input.appType ?? "SERVICE_ACCOUNT", input.oauthDomain ?? "", input.jsapiPath ?? "", input.verifyFile ?? "", input.verifyToken ?? "");
+  return db.prepare("SELECT a.id, a.subject_id AS subjectId, a.appid, a.app_type AS appType, a.oauth_domain AS oauthDomain, a.jsapi_path AS jsapiPath, a.verify_file AS verifyFile, a.status FROM wechat_apps a WHERE a.id = ?").get(id) as Record<string, unknown>;
 }
 
 export function getWechatApp(id: string): Record<string, unknown> | undefined {
-  return db.prepare("SELECT a.id, a.subject_id AS subjectId, a.appid, a.app_type AS appType, a.oauth_domain AS oauthDomain, a.jsapi_path AS jsapiPath, a.status FROM wechat_apps a WHERE a.id = ?").get(id) as Record<string, unknown> | undefined;
+  return db.prepare("SELECT a.id, a.subject_id AS subjectId, a.appid, a.app_type AS appType, a.oauth_domain AS oauthDomain, a.jsapi_path AS jsapiPath, a.verify_file AS verifyFile, a.verify_token AS verifyToken, a.status FROM wechat_apps a WHERE a.id = ?").get(id) as Record<string, unknown> | undefined;
 }
 
 export function getMerchantPaymentMethod(merchantId: string, method: "NATIVE" | "JSAPI"): Record<string, unknown> | undefined {
@@ -1941,11 +1943,22 @@ export function listPublicPaymentEntries(input: { status?: string; limit?: numbe
     ORDER BY e.created_at DESC LIMIT ?`).all(...params) as Array<Record<string, unknown>>;
 }
 
-export function updateApp(id: string, input: { oauthDomain?: string; jsapiPath?: string }): Record<string, unknown> | undefined {
+export function updateApp(id: string, input: { oauthDomain?: string; jsapiPath?: string; verifyFile?: string; verifyToken?: string }): Record<string, unknown> | undefined {
   if (!db.prepare("SELECT id FROM wechat_apps WHERE id = ?").get(id)) return undefined;
-  db.prepare("UPDATE wechat_apps SET oauth_domain = ?, jsapi_path = ? WHERE id = ?")
-    .run(input.oauthDomain ?? "", input.jsapiPath ?? "", id);
+  db.prepare("UPDATE wechat_apps SET oauth_domain = ?, jsapi_path = ?, verify_file = ?, verify_token = ? WHERE id = ?")
+    .run(input.oauthDomain ?? "", input.jsapiPath ?? "", input.verifyFile ?? "", input.verifyToken ?? "", id);
   return listApps().find((item) => String(item.id) === id);
+}
+
+/**
+ * Find the stored WeChat web-auth verification file by its public filename
+ * (e.g. "MP_verify_abc123.txt"). Returns the active app that owns it and the
+ * token content WeChat expects at the domain root.
+ */
+export function getAppVerifyFile(fileName: string): { appId: string; appid: string; token: string } | undefined {
+  const row = db.prepare("SELECT a.id AS appId, a.appid, a.verify_token AS token FROM wechat_apps a WHERE a.verify_file = ? AND a.status = 'ACTIVE' LIMIT 1").get(fileName) as { appId: string; appid: string; token: string } | undefined;
+  if (!row || !row.token) return undefined;
+  return row;
 }
 
 export interface CreateMerchantInput { id?: string; subjectId: string; appId?: string; appIds?: string[]; paymentMethods?: Array<"NATIVE" | "JSAPI">; nativeAppId?: string; jsapiAppId?: string; mchid: string; credentialRef: string; dailyAmountLimit?: number; complaintCount?: number; orderWindowSeconds?: number; orderWindowLimit?: number; dailyOrderLimit?: number; dailySuccessLimit?: number; }
@@ -3203,7 +3216,7 @@ export function listSubjects(): Array<Record<string, unknown>> {
 
 export function listApps(): Array<Record<string, unknown>> {
   return db.prepare(`
-    SELECT a.id, a.appid, a.app_type AS appType, a.oauth_domain AS oauthDomain, a.jsapi_path AS jsapiPath, a.status, a.subject_id AS subjectId,
+    SELECT a.id, a.appid, a.app_type AS appType, a.oauth_domain AS oauthDomain, a.jsapi_path AS jsapiPath, a.verify_file AS verifyFile, a.verify_token AS verifyToken, a.status, a.subject_id AS subjectId,
       s.name AS subjectName, COUNT(b.id) AS bindingCount
     FROM wechat_apps a
     JOIN merchant_subjects s ON s.id = a.subject_id

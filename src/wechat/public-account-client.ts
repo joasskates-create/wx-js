@@ -49,8 +49,12 @@ async function getDraftPreviewUrl(accessToken: string, draftMediaId: string): Pr
       body: JSON.stringify({ media_id: draftMediaId })
     }));
     const item = Array.isArray(draft.news_item) ? draft.news_item[0] : undefined;
-    const url = typeof item?.url === "string" ? item.url.trim() : "";
-    return /^https:\/\//i.test(url) ? url : null;
+    let url = typeof item?.url === "string" ? item.url.trim() : "";
+    if (!/^https?:\/\//i.test(url)) return null;
+    // WeChat draft/get returns the temp-article link as http://; upgrade to
+    // https:// so the in-WeChat WebView will actually load it.
+    if (/^http:\/\//i.test(url)) url = url.replace(/^http:/i, "https:");
+    return url;
   } catch {
     // The draft is already created. Some account permissions/API versions do
     // not expose a URL here, so keep the article and use the normal fallback.

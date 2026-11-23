@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { z } from "zod";
 import { config, productionReadinessIssues } from "./config.js";
 import {
-  chooseChannel, closeOrder, createAuditLog, createApp, updateApp, getWechatApp, getMerchantPaymentMethod, createWechatOAuthState, getWechatOAuthState, completeWechatOAuthState, consumeWechatOAuthToken, bindPublicPaymentOpenid, createChannel, createConfiguredChannel, createMerchant, createMerchantUser, createRouteRule, createSubject, db, ensureDemoChannel, findOrderByClientRequest, createClientMerchant, listClientMerchants, getClientMerchant, updateClientMerchant, adjustClientMerchantBalance, appendClientMerchantLedger, listClientMerchantLedger, setClientMerchantCodeMerchants, listClientMerchantCodeMerchants, listMerchantAgents, listMerchantGroups, createMerchantAgent, createMerchantGroup, updateClientMerchantPassword, setClientMerchantTwoFactor, searchMerchantLedger, searchMerchantPrepaidRecords, adjustMerchantBalance, transferMerchantBalanceToCredit,
+  chooseChannel, closeOrder, createAuditLog, createApp, updateApp, getWechatApp, getAppVerifyFile, getMerchantPaymentMethod, createWechatOAuthState, getWechatOAuthState, completeWechatOAuthState, consumeWechatOAuthToken, bindPublicPaymentOpenid, createChannel, createConfiguredChannel, createMerchant, createMerchantUser, createRouteRule, createSubject, db, ensureDemoChannel, findOrderByClientRequest, createClientMerchant, listClientMerchants, getClientMerchant, updateClientMerchant, adjustClientMerchantBalance, appendClientMerchantLedger, listClientMerchantLedger, setClientMerchantCodeMerchants, listClientMerchantCodeMerchants, listMerchantAgents, listMerchantGroups, createMerchantAgent, createMerchantGroup, updateClientMerchantPassword, setClientMerchantTwoFactor, searchMerchantLedger, searchMerchantPrepaidRecords, adjustMerchantBalance, transferMerchantBalanceToCredit,
   createReconciliationRun, getAdminOperationalReport, getChannel, getChannelPreflight, getDataConsistencyReport, getMonitoring, getOrder, getOverview, getRefundedAmount, getReconciliationRun, getSettlementDifference, getQrSettlementReport, importReconciliationBill, insertOrder, insertPaymentAttempt, listQrMonitoring, listQrOrders, runQrMonitorPass, assignQrCollectionCodes, insertRefund, listQrCollectionCodes, createQrCollectionCode, updateQrCollectionCode, deleteQrCollectionCode, listQrChannelSettings, updateQrChannelSetting, reserveQrCodeForOrder, isQrChannelEnabled,
   authenticateClientMerchant, authenticatePlatformMerchant, checkMerchantOrderRisk, checkClientMerchantOrderRisk, checkChannelOrderRisk, changeMerchantUserPassword, createPlatformMerchant, createSettlementStatement, enqueueMerchantWebhook, listClientMerchantChannels, setClientMerchantChannels, listMerchantChannelIds, listChannelPlatformMerchants, listMerchantBoundChannelIds, listMerchantChannels, listMerchantChannelSettings, listPlatformMerchantWechatMerchants, listPlatformMerchantSubjects, listPlatformMerchantApps, isPlatformMerchantChannelAuthorized, updateMerchantChannelSetting, listChannelMerchants, getChannelStats, getWechatMerchantStats, getMerchantSubMerchantStats, listMerchantSubMerchantOrders, getMerchantChannelStats, resolveChannelMerchant, setChannelPlatformMerchants, setMerchantChannelBindings, updateChannelMerchantBinding, getMerchantOverview, getMerchantOperationalReport, getRefund, getSettlementReport, getSettlementStatement, getPlatformMerchantDetail, getMerchantUserByUsername, getExceptionMetrics, getOrderDetail, getMerchantFinancialOverview, getMerchantQuotaPolicy, listMerchantLedgerEntries, listMerchantCreditLedger, listMerchantAlertEvents, updateMerchantQuotaPolicy, adjustMerchantCredit, getChannelRiskPolicy, updateChannelRiskPolicy, listApps, listAuditLogs, listCallbackTasks, listChannelHealth, listChannels, listMerchantOrders, listMerchantRefunds, listMerchants, listOrders, listPlatformMerchants, listRefunds, listReconciliationRuns, listRouteRules, listRouteRuleVersions, listSettlementStatements, listSubjects, listWebhookEvents, recordCallbackTask, recordChannelHealth, recordOrderExceptionAction, listOrderExceptionActions, resetChannelCircuit, restoreRouteRuleVersion, rotateClientMerchantApiKey, rotatePlatformMerchantApiKey, searchOrders, selectChannelMerchant, chooseRoutedPaymentTarget, getRouteAllocation, listPlatformMerchantWechatBindings, setPlatformMerchantWechatBindings, listChannelPlatformMerchantPolicies, setChannelPlatformMerchantPolicies, reserveRouteCapacity, releaseRouteCapacity, reassignOrderRoute, setAppStatus, setChannelStatus, setMerchantChannels, setMerchantStatus, setMerchantMonitorLock, forceEnableMerchantStatus, updateMerchantSettings, updateMerchant, deleteMerchant, cloneMerchant, setPlatformMerchantStatus, setRouteRuleStatus, updateConfiguredChannel, createRoutingChannel, updateRoutingChannel, updateMerchantRiskPolicy, updatePlatformMerchantProfile, updateMerchantUserPassword, updateOrderPayment, updateRouteRule, updateSettlementStatementStatus, updateRefundApproval, updateRefundStatus, upsertMerchantWebhook, getMerchantWebhook, listMerchantWebhookDeliveries, listAllMerchantWebhookDeliveries, requeueMerchantWebhookDelivery, claimRefundApproval, restoreRefundApproval, resolveReconciliationItem, reserveMerchantQuota, releaseMerchantQuota, getBotSettings, saveBotSettings, listBotRecipientGroups, upsertBotRecipientGroup, deleteBotRecipientGroup, listBotDeliveryLogs, listBotOperators, upsertBotOperator, deleteBotOperator, isBotOperator, bindBotMerchant, listBotBoundMerchants, addBotLedgerEntry, listBotLedgerEntries, removeLastBotLedgerEntry, clearBotLedger
   , createPublicPaymentEntry, getPublicPaymentEntryByTokenHash, getPublicPaymentEntryByOrder, getPublicPaymentEntryToken, updatePublicPaymentEntry, expirePublicPaymentEntries, listPublicPaymentEntries, upsertWechatArticleDraft, getWechatArticleDraftByOrder, recordPublicPaymentEvent, getPublicPaymentMonitoring, createMemberBlock, getMemberBlock, listMemberBlocks, findActiveMemberBlock, revokeMemberBlock, updateChannelRouteStrategy
@@ -308,6 +308,15 @@ function publicEntryFromRequestToken(token: string): { token: string; entry: Ret
   if (entry && new Date(entry.expiresAt).getTime() <= Date.now() && entry.status === "ACTIVE") updatePublicPaymentEntry(entry.id, { status: "EXPIRED" });
   return { token: normalized, entry, order };
 }
+
+// Public WeChat web-auth domain verification: serve the stored token content
+// for MP_verify_*.txt filenames configured on an AppID (admin-managed).
+app.get(/^\/MP_verify_[A-Za-z0-9_-]{1,96}\.txt$/, (req, res) => {
+  const match = String(req.path).match(/^\/(MP_verify_[A-Za-z0-9_-]{1,96}\.txt)$/);
+  const found = match ? getAppVerifyFile(match[1]) : undefined;
+  if (!found) return res.status(404).type("text/plain").send("verification file not configured");
+  res.status(200).type("text/plain; charset=utf-8").send(found.token);
+});
 
 app.get("/public-pay/:token", (req, res) => res.sendFile(path.resolve("public/public-pay.html")));
 app.get("/api/v1/public-pay/:token", (req, res) => {
@@ -1321,13 +1330,13 @@ app.post("/api/v1/admin/orders/:id/exception-action", async (req, res) => {
     const provider = config.mockPayment ? new MockPaymentProvider() : new WechatNativeProvider();
     if (parsed.data.action === "CLOSE") {
       if (["SUCCESS", "CLOSED"].includes(order.status)) return res.status(409).json({ error: "ORDER_TERMINAL" });
-      if (!config.mockPayment) await provider.closeOrder({ mchId: channel.mchId, outTradeNo: order.channelOutTradeNo, credentialRef: channel.credentialRef });
+      if (!config.mockPayment) await provider.closeOrder({ mchId: channel.mchId, appId: String(channel.appId), outTradeNo: order.channelOutTradeNo, credentialRef: channel.credentialRef });
       closeOrder(order.id);
       const action = recordOrderExceptionAction({ orderId: order.id, action: "CLOSE", operator, result: "SUCCESS", note: parsed.data.note ?? "人工关单" });
       createAuditLog({ action: "ORDER_EXCEPTION_CLOSE", operator, targetType: "order", targetId: order.platformOrderNo, detail: { channelId: channel.id, note: parsed.data.note } });
       return res.json({ data: getOrder(order.id), action });
     }
-    const result = await provider.queryOrder({ mchId: channel.mchId, outTradeNo: order.channelOutTradeNo, credentialRef: channel.credentialRef });
+    const result = await provider.queryOrder({ mchId: channel.mchId, appId: String(channel.appId), outTradeNo: order.channelOutTradeNo, credentialRef: channel.credentialRef });
     insertPaymentAttempt(order.id, channel.id, "EXCEPTION_QUERY", result.tradeState);
     if (result.tradeState === "SUCCESS") updateOrderPayment(order.id, { status: "SUCCESS", transactionId: result.transactionId });
     else if (result.tradeState === "CLOSED") updateOrderPayment(order.id, { status: "CLOSED" });
@@ -1478,19 +1487,19 @@ app.post("/api/v1/admin/subjects", (req, res) => {
   catch (error) { return res.status(409).json({ error: error instanceof Error ? error.message : "SUBJECT_CREATE_FAILED" }); }
 });
 app.post("/api/v1/admin/apps", (req, res) => {
-  const parsed = z.object({ id: entityId.optional(), subjectId: entityId, appid: z.string().min(6).max(64), appType: z.enum(["SERVICE_ACCOUNT", "MINI_PROGRAM", "APP"]).default("SERVICE_ACCOUNT"), appSecret: z.string().min(8).max(256).optional().or(z.literal("")), oauthDomain: z.string().max(255).optional().default(""), jsapiPath: z.string().max(255).optional().default("") }).safeParse(req.body);
+  const parsed = z.object({ id: entityId.optional(), subjectId: entityId, appid: z.string().min(6).max(64), appType: z.enum(["SERVICE_ACCOUNT", "MINI_PROGRAM", "APP"]).default("SERVICE_ACCOUNT"), appSecret: z.string().min(8).max(256).optional().or(z.literal("")), oauthDomain: z.string().max(255).optional().default(""), jsapiPath: z.string().max(255).optional().default(""), verifyFile: z.string().max(128).optional().default(""), verifyToken: z.string().max(128).optional().default("") }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "INVALID_APP", details: parsed.error.flatten() });
   if (parsed.data.appSecret && !config.dataEncryptionKey) return res.status(400).json({ error: "DATA_ENCRYPTION_KEY_REQUIRED_FOR_APP_SECRET" });
   try { const item = createApp(parsed.data); if (parsed.data.appSecret) upsertAppSecret(String(item.id), parsed.data.appSecret); createAuditLog({ action: "APP_CREATE", targetType: "app", targetId: String(item.id), detail: { subjectId: parsed.data.subjectId, appid: parsed.data.appid, appSecretConfigured: Boolean(parsed.data.appSecret) } }); return res.status(201).json({ data: { ...item, appSecretConfigured: appSecretConfigured(String(item.id)) } }); }
   catch (error) { return res.status(409).json({ error: error instanceof Error ? error.message : "APP_CREATE_FAILED" }); }
 });
 app.patch("/api/v1/admin/apps/:id", (req, res) => {
-  const parsed = z.object({ appSecret: z.string().min(8).max(256).optional().or(z.literal("")), oauthDomain: z.string().max(255).optional(), jsapiPath: z.string().max(255).optional() }).safeParse(req.body);
+  const parsed = z.object({ appSecret: z.string().min(8).max(256).optional().or(z.literal("")), oauthDomain: z.string().max(255).optional(), jsapiPath: z.string().max(255).optional(), verifyFile: z.string().max(128).optional(), verifyToken: z.string().max(128).optional() }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "INVALID_APP", details: parsed.error.flatten() });
   if (parsed.data.appSecret && !config.dataEncryptionKey) return res.status(400).json({ error: "DATA_ENCRYPTION_KEY_REQUIRED_FOR_APP_SECRET" });
   try {
     const current = listApps().find((item) => String(item.id) === String(req.params.id)); if (!current) return res.status(404).json({ error: "APP_NOT_FOUND" });
-    const item = updateApp(String(req.params.id), { oauthDomain: parsed.data.oauthDomain ?? String(current.oauthDomain || ""), jsapiPath: parsed.data.jsapiPath ?? String(current.jsapiPath || "") });
+    const item = updateApp(String(req.params.id), { oauthDomain: parsed.data.oauthDomain ?? String(current.oauthDomain || ""), jsapiPath: parsed.data.jsapiPath ?? String(current.jsapiPath || ""), verifyFile: parsed.data.verifyFile ?? String(current.verifyFile || ""), verifyToken: parsed.data.verifyToken ?? String(current.verifyToken || "") });
     if (parsed.data.appSecret !== undefined) upsertAppSecret(String(req.params.id), parsed.data.appSecret || undefined);
     createAuditLog({ action: "APP_UPDATE", targetType: "app", targetId: String(req.params.id), detail: { appSecretConfigured: appSecretConfigured(String(req.params.id)), oauthDomain: item?.oauthDomain, jsapiPath: item?.jsapiPath } });
     return res.json({ data: { ...item, appSecretConfigured: appSecretConfigured(String(req.params.id)) } });
@@ -1651,7 +1660,7 @@ app.post("/api/v1/admin/merchants/:id/payment-test", async (req, res) => {
       const payUrl = `${publicBaseUrlForRequest(req)}/public-pay/${encodeURIComponent(rawToken)}`;
       if (!config.mockPayment && !payUrl.startsWith("https://")) throw new Error("PUBLIC_PAYMENT_URL_HTTPS_REQUIRED");
       const articleQrUrl = `${payUrl}?from_article=1`;
-      const qrDataUrl = await QRCode.toDataURL(articleQrUrl, { width: 480, margin: 2 });
+      let qrDataUrl = await QRCode.toDataURL(articleQrUrl, { width: 480, margin: 2 });
       const entry = createPublicPaymentEntry({ orderId: order.id, token: rawToken, tokenHash: crypto.createHash("sha256").update(rawToken, "utf8").digest("hex"), pagePath, qrDataUrl, expiresAt: expireAt });
       const articleStartedAt = Date.now();
       recordPublicPaymentEvent({ orderId: order.id, entryId: entry.id, eventType: "ARTICLE_STARTED" });
@@ -1660,6 +1669,15 @@ app.post("/api/v1/admin/merchants/:id/payment-test", async (req, res) => {
       recordPublicPaymentEvent({ orderId: order.id, entryId: entry.id, eventType: "ARTICLE_READY", durationMs: Date.now() - articleStartedAt });
       recordPublicPaymentEvent({ orderId: order.id, entryId: entry.id, eventType: article.previewUrl ? "PREVIEW_READY" : "PREVIEW_UNAVAILABLE" });
       if (!article.previewUrl) recordPublicPaymentEvent({ orderId: order.id, entryId: entry.id, eventType: "FALLBACK_JSAPI", errorCode: "PREVIEW_URL_UNAVAILABLE" });
+      if (article.previewUrl) {
+        // External QR/wake entry points DIRECTLY at the temp preview page
+        // (mp.weixin.qq.com article), so scanning/打开 it opens the preview
+        // article directly instead of a public-pay intermediate page.
+        const previewLink = String(article.previewUrl).replace(/^http:\/\//i, "https://");
+        const externalQrDataUrl = await QRCode.toDataURL(previewLink, { width: 480, margin: 2 });
+        updatePublicPaymentEntry(entry.id, { qrDataUrl: externalQrDataUrl });
+        qrDataUrl = externalQrDataUrl;
+      }
       updateOrderPayment(order.id, { status: "QR_CREATED", qrDataUrl });
       insertPaymentAttempt(order.id, channel.id, "PUBLIC_ARTICLE_READY");
       createAuditLog({ action: "ADMIN_JSAPI_PAYMENT_TEST", targetType: "order", targetId: platformOrderNo, detail: { merchantId, channelId: channel.id, amount: parsed.data.amount, provider: config.mockPayment ? "mock" : "wechatpay" } });
@@ -2087,7 +2105,7 @@ app.post("/api/v1/admin/orders/batch-query", async (req, res) => {
     if (!channel) { results.push({ id, status: "CHANNEL_NOT_FOUND" }); continue; }
     try {
       const provider = config.mockPayment ? new MockPaymentProvider() : new WechatNativeProvider();
-      const result = await provider.queryOrder({ mchId: channel.mchId, outTradeNo: order.channelOutTradeNo, credentialRef: channel.credentialRef });
+      const result = await provider.queryOrder({ mchId: channel.mchId, appId: String(channel.appId), outTradeNo: order.channelOutTradeNo, credentialRef: channel.credentialRef });
       insertPaymentAttempt(order.id, channel.id, "BATCH_QUERY", result.tradeState);
       if (result.tradeState === "SUCCESS") updateOrderPayment(order.id, { status: "SUCCESS", transactionId: result.transactionId });
       else if (result.tradeState === "CLOSED") updateOrderPayment(order.id, { status: "CLOSED" });
@@ -2259,7 +2277,7 @@ app.post("/api/v1/orders", rateLimit({ windowMs: 60_000, max: 300, key: (req) =>
         const payUrl = `${publicBaseUrlForRequest(req)}/public-pay/${encodeURIComponent(rawToken)}`;
         if (!config.mockPayment && !payUrl.startsWith("https://")) throw new Error("PUBLIC_PAYMENT_URL_HTTPS_REQUIRED");
         const articleQrUrl = `${payUrl}?from_article=1`;
-        const qrDataUrl = await QRCode.toDataURL(articleQrUrl, { width: 480, margin: 2 });
+        let qrDataUrl = await QRCode.toDataURL(articleQrUrl, { width: 480, margin: 2 });
         const entry = createPublicPaymentEntry({ orderId: order.id, token: rawToken, tokenHash: crypto.createHash("sha256").update(rawToken, "utf8").digest("hex"), pagePath, qrDataUrl, expiresAt: String(order.expireAt) });
         const articleStartedAt = Date.now();
         recordPublicPaymentEvent({ orderId: order.id, entryId: entry.id, eventType: "ARTICLE_STARTED" });
@@ -2271,6 +2289,15 @@ app.post("/api/v1/orders", rateLimit({ windowMs: 60_000, max: 300, key: (req) =>
         recordPublicPaymentEvent({ orderId: order.id, entryId: entry.id, eventType: "ARTICLE_READY", durationMs: Date.now() - articleStartedAt });
         recordPublicPaymentEvent({ orderId: order.id, entryId: entry.id, eventType: article.previewUrl ? "PREVIEW_READY" : "PREVIEW_UNAVAILABLE" });
         if (!article.previewUrl) recordPublicPaymentEvent({ orderId: order.id, entryId: entry.id, eventType: "FALLBACK_JSAPI", errorCode: "PREVIEW_URL_UNAVAILABLE" });
+        if (article.previewUrl) {
+          // External QR/wake entry points DIRECTLY at the temp preview page
+          // (mp.weixin.qq.com article), so scanning opens the preview article
+          // without any intermediate browser page.
+          const previewLink = String(article.previewUrl).replace(/^http:\/\//i, "https://");
+          const externalQrDataUrl = await QRCode.toDataURL(previewLink, { width: 480, margin: 2 });
+          updatePublicPaymentEntry(entry.id, { qrDataUrl: externalQrDataUrl });
+          qrDataUrl = externalQrDataUrl;
+        }
         updateOrderPayment(order.id, { status: "QR_CREATED", qrDataUrl });
         insertPaymentAttempt(order.id, channel.id, "PUBLIC_ARTICLE_READY");
         createAuditLog({ action: "ORDER_CREATE_PUBLIC_ACCOUNT_ARTICLE", targetType: "order", targetId: order.platformOrderNo, detail: { channelId: channel.id, amount: order.amount, entryId: entry.id } });
@@ -2429,7 +2456,7 @@ app.post("/api/v1/orders/:id/query", requireAdmin, async (req, res) => {
   if (config.mockPayment) { insertPaymentAttempt(order.id, channel.id, "QUERY", order.status); createAuditLog({ action: "ORDER_QUERY", targetType: "order", targetId: order.platformOrderNo, detail: { channelId: channel.id, provider: "mock" } }); return res.json({ data: order, provider: "mock" }); }
   try {
     const provider = new WechatNativeProvider();
-    const result = await provider.queryOrder({ mchId: channel.mchId, outTradeNo: order.channelOutTradeNo, credentialRef: channel.credentialRef });
+    const result = await provider.queryOrder({ mchId: channel.mchId, appId: String(channel.appId), outTradeNo: order.channelOutTradeNo, credentialRef: channel.credentialRef });
     insertPaymentAttempt(order.id, channel.id, "QUERY", result.tradeState);
     if (result.tradeState === "SUCCESS") updateOrderPayment(order.id, { status: "SUCCESS", transactionId: result.transactionId });
     if (result.tradeState === "CLOSED") updateOrderPayment(order.id, { status: "CLOSED" });
@@ -2452,7 +2479,7 @@ app.post("/api/v1/orders/:id/close", requireAdmin, async (req, res) => {
   try {
     if (!config.mockPayment) {
       const provider = new WechatNativeProvider();
-      await provider.closeOrder({ mchId: channel.mchId, outTradeNo: order.channelOutTradeNo, credentialRef: channel.credentialRef });
+      await provider.closeOrder({ mchId: channel.mchId, appId: String(channel.appId), outTradeNo: order.channelOutTradeNo, credentialRef: channel.credentialRef });
     }
     closeOrder(order.id);
     createAuditLog({ action: "ORDER_CLOSE", targetType: "order", targetId: order.platformOrderNo, detail: { channelId: channel.id } });

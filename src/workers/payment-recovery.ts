@@ -20,7 +20,7 @@ export async function runPaymentRecoveryPass(channelIds?: string[]): Promise<{ s
       if (!channel) continue;
       try {
         const provider = config.mockPayment ? new MockPaymentProvider() : new WechatNativeProvider();
-        const query = await provider.queryOrder({ mchId: String(item.mchid), outTradeNo: String(item.channelOutTradeNo), credentialRef: String(item.credentialRef) });
+        const query = await provider.queryOrder({ mchId: String(item.mchid), appId: String(channel.appId), outTradeNo: String(item.channelOutTradeNo), credentialRef: String(item.credentialRef) });
         insertPaymentAttempt(String(item.id), String(item.channelId), "RECOVERY_QUERY", query.tradeState);
         if (query.tradeState === "SUCCESS") {
           updateOrderPayment(String(item.id), { status: "SUCCESS", transactionId: query.transactionId });
@@ -32,7 +32,7 @@ export async function runPaymentRecoveryPass(channelIds?: string[]): Promise<{ s
           passResult.updated += 1;
           passResult.closed += 1;
         } else if (query.tradeState === "NOTPAY" && new Date(String(item.expireAt)).getTime() < Date.now()) {
-          await provider.closeOrder({ mchId: String(item.mchid), outTradeNo: String(item.channelOutTradeNo), credentialRef: String(item.credentialRef) });
+          await provider.closeOrder({ mchId: String(item.mchid), appId: String(channel.appId), outTradeNo: String(item.channelOutTradeNo), credentialRef: String(item.credentialRef) });
           closeOrder(String(item.id));
           recordOrderExceptionAction({ orderId: String(item.id), action: "CLOSE", result: "SUCCESS", note: "订单已过期且查单未支付，自动关单" });
           passResult.updated += 1;

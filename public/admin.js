@@ -863,7 +863,7 @@ function closeSubjectModal() { document.querySelector('#subjectModal')?.classLis
 function openAppModal(item) {
   const form = document.querySelector('#appForm'); form.reset(); refreshSubjectSelects(); form.dataset.editingId = item?.id || '';
   form.elements.subjectId.disabled = Boolean(item); form.elements.appid.readOnly = Boolean(item); form.elements.appType.disabled = Boolean(item);
-  if (item) { form.elements.subjectId.value = item.subjectId || ''; form.elements.appid.value = item.appid || ''; form.elements.appType.value = item.appType || 'SERVICE_ACCOUNT'; form.elements.oauthDomain.value = item.oauthDomain || ''; form.elements.jsapiPath.value = item.jsapiPath || ''; }
+  if (item) { form.elements.subjectId.value = item.subjectId || ''; form.elements.appid.value = item.appid || ''; form.elements.appType.value = item.appType || 'SERVICE_ACCOUNT'; form.elements.oauthDomain.value = item.oauthDomain || ''; form.elements.jsapiPath.value = item.jsapiPath || ''; form.elements.verifyFile.value = item.verifyFile || ''; }
   document.querySelector('#appFormMessage').textContent = ''; document.querySelector('#appFormMessage').className = 'message';
   document.querySelector('#appModal')?.classList.remove('hidden');
   setTimeout(() => form.elements.subjectId.focus(), 0);
@@ -1260,7 +1260,7 @@ document.querySelector('#appForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.target; const raw = Object.fromEntries(new FormData(form).entries()); const editingId = form.dataset.editingId;
   if (!raw.appSecret) delete raw.appSecret;
-  try { await api(editingId ? `/api/v1/admin/apps/${encodeURIComponent(editingId)}` : '/api/v1/admin/apps', { method: editingId ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editingId ? { appSecret: raw.appSecret, oauthDomain: raw.oauthDomain, jsapiPath: raw.jsapiPath } : raw) }); closeAppModal(); setMessage('appMessage', editingId ? '公众号配置已保存' : 'AppID 创建成功', false); await loadData(); } catch (error) { showError(error, 'appFormMessage'); }
+  try { await api(editingId ? `/api/v1/admin/apps/${encodeURIComponent(editingId)}` : '/api/v1/admin/apps', { method: editingId ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editingId ? { appSecret: raw.appSecret, oauthDomain: raw.oauthDomain, jsapiPath: raw.jsapiPath, verifyFile: raw.verifyFile, verifyToken: raw.verifyToken } : raw) }); closeAppModal(); setMessage('appMessage', editingId ? '公众号配置已保存' : 'AppID 创建成功', false); await loadData(); } catch (error) { showError(error, 'appFormMessage'); }
 });
 
 document.querySelector('#merchantForm').addEventListener('submit', async (event) => {
