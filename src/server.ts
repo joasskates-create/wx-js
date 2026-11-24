@@ -324,7 +324,7 @@ app.get("/api/v1/public-pay/:token", (req, res) => {
   if (!found.entry || !found.order) return res.status(404).json({ error: "PUBLIC_PAYMENT_ENTRY_NOT_FOUND" });
   const draft = getWechatArticleDraftByOrder(found.order.id);
   const status = found.entry.status === "ACTIVE" && new Date(found.entry.expiresAt).getTime() <= Date.now() ? "EXPIRED" : found.entry.status;
-  const article = draft ? { status: draft.status, previewUrl: draft.previewUrl, fallbackToJsapi: draft.status === "FAILED" || !draft.previewUrl } : { status: "PENDING", previewUrl: null, fallbackToJsapi: false };
+  const article = draft ? { status: draft.status, appId: draft.appId, previewUrl: draft.previewUrl, fallbackToJsapi: draft.status === "FAILED" || !draft.previewUrl } : { status: "PENDING", appId: null, previewUrl: null, fallbackToJsapi: false };
   return res.json({ data: { order: publicOrder(found.order), entry: { status, expiresAt: found.entry.expiresAt, payUrl: `${publicBaseUrlForRequest(req)}/public-pay/${encodeURIComponent(String(req.params.token))}`, qrDataUrl: found.entry.qrDataUrl }, article } });
 });
 
@@ -341,7 +341,8 @@ app.post("/api/v1/public-pay/:token/handoff", (req, res) => {
   const found = publicEntryFromRequestToken(String(req.params.token));
   if (!found.entry || !found.order) return res.status(404).json({ error: "PUBLIC_PAYMENT_ENTRY_NOT_FOUND" });
   if (found.entry.status !== "ACTIVE" || new Date(found.entry.expiresAt).getTime() <= Date.now()) return res.status(410).json({ error: "PUBLIC_PAYMENT_ENTRY_EXPIRED" });
-  const previewUrl = validWechatPreviewUrl(getWechatArticleDraftByOrder(found.order.id)?.previewUrl);
+  const draft = getWechatArticleDraftByOrder(found.order.id);
+  const previewUrl = validWechatPreviewUrl(draft?.previewUrl);
   if (!previewUrl) {
     recordPublicPaymentEvent({ orderId: found.order.id, entryId: found.entry.id, eventType: "HANDOFF_TICKET_FAILED", errorCode: "PREVIEW_URL_UNAVAILABLE" });
     return res.status(409).json({ error: "PREVIEW_URL_UNAVAILABLE", message: "公众号预览链接尚未准备好" });
@@ -351,7 +352,7 @@ app.post("/api/v1/public-pay/:token/handoff", (req, res) => {
   const expiresAt = new Date(Math.min(new Date(found.order.expireAt).getTime(), Date.now() + 2 * 60_000)).toISOString();
   const ticket = createWechatHandoffTicket({ orderId: found.order.id, entryId: found.entry.id, ticketHash, previewUrl, expiresAt });
   recordPublicPaymentEvent({ orderId: found.order.id, entryId: found.entry.id, eventType: "HANDOFF_TICKET_CREATED", detail: { handoffId: ticket.id, expiresAt } });
-  return res.json({ data: { ticket: rawTicket, handoffId: ticket.id, bridgeUrl: `${publicBaseUrlForRequest(req)}/wechat-bridge/${encodeURIComponent(rawTicket)}`, previewUrl, expiresAt } });
+  return res.json({ data: { ticket: rawTicket, handoffId: ticket.id, appId: draft?.appId || null, bridgeUrl: `${publicBaseUrlForRequest(req)}/wechat-bridge/${encodeURIComponent(rawTicket)}`, previewUrl, expiresAt } });
 });
 
 app.post("/api/v1/public-pay/:token/telemetry", (req, res) => {

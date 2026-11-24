@@ -3,6 +3,7 @@
   const $ = (id) => document.getElementById(id);
   let info;
   let previewUrl = null;
+  let previewAppId = null;
   let fallbackToJsapi = false;
   let wakeAttempted = false;
   let wakeTimer;
@@ -46,6 +47,7 @@
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error || '支付入口不可用');
     info = body.data;
+    previewAppId = typeof info.article?.appId === 'string' ? info.article.appId : null;
     previewUrl = typeof info.article?.previewUrl === 'string' && /^https:\/\//i.test(info.article.previewUrl)
       ? info.article.previewUrl : null;
     const order = info.order || {};
@@ -57,7 +59,7 @@
     $('status').textContent = '订单状态：' + (order.status || '--');
     if (info.entry.qrDataUrl) { $('qr').src = info.entry.qrDataUrl; $('qr').hidden = false; }
     const payable = info.entry.status === 'ACTIVE' && ['CREATED', 'ROUTED', 'QR_CREATED'].includes(order.status);
-    return { payable, article: info.article || { status: 'PENDING', fallbackToJsapi: false } };
+    return { payable, article: info.article || { status: 'PENDING', appId: null, fallbackToJsapi: false } };
   }
   async function ensureHandoff() {
     if (!previewUrl) return null;
@@ -68,6 +70,7 @@
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || body.error || '微信中转链接生成失败');
       handoff = body.data;
+      if (typeof handoff.appId === 'string' && handoff.appId) previewAppId = handoff.appId;
       return handoff;
     })();
     try { return await handoffPromise; } finally { handoffPromise = null; }
@@ -84,6 +87,12 @@
     $('copy-link').classList.remove('hidden');
     $('hint').textContent = '如果微信没有进入文章，请点击“复制预览页链接”，在微信聊天中粘贴打开';
   }
+  function wechatWebviewScheme(targetUrl) {
+    const params = new URLSearchParams();
+    if (previewAppId) params.set('appid', previewAppId);
+    params.set('url', targetUrl);
+    return 'weixin://dl/businesswebview/link/?' + params.toString();
+  }
   async function wakeWechat(options = {}) {
     const useJsapiFallback = Boolean(options.fallbackToJsapi || fallbackToJsapi || !previewUrl);
     if (inWechat()) {
@@ -96,7 +105,7 @@
     window.clearTimeout(wakeTimer);
     if (useJsapiFallback) {
       const payPage = info?.entry?.payUrl || location.href;
-      const target = 'weixin://dl/businesswebview/link/?url=' + encodeURIComponent(payPage);
+      const target = wechatWebviewScheme(payPage);
       telemetry('WAKE_ATTEMPTED', { target: 'jsapi', platform: /Android/i.test(navigator.userAgent) ? 'android' : 'ios' });
       try { window.location.href = target; } catch { /* browser refused the scheme */ }
       wakeTimer = window.setTimeout(showCopyFallback, WAKE_WAIT_MS);
@@ -131,7 +140,7 @@
     // Both platforms first receive the same direct user-gesture Scheme attempt.
     // iOS may ignore the url parameter; the timed fallback opens the official
     // WeChat gateway for the exact preview URL.
-    try { window.location.href = 'weixin://dl/businesswebview/link/?url=' + encodeURIComponent(targetUrl); } catch { /* browser refused the scheme */ }
+    try { window.location.href = wechatWebviewScheme(targetUrl); } catch { /* browser refused the scheme */ }
     wakeTimer = window.setTimeout(() => {
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('pagehide', onPageHide);
