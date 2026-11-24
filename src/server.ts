@@ -358,7 +358,7 @@ app.post("/api/v1/public-pay/:token/telemetry", (req, res) => {
   const found = publicEntryFromRequestToken(String(req.params.token));
   if (!found.entry || !found.order) return res.status(404).json({ error: "PUBLIC_PAYMENT_ENTRY_NOT_FOUND" });
   const parsed = z.object({
-    eventType: z.enum(["WAKE_ATTEMPTED", "WAKE_APP_SWITCHED", "WAKE_GATEWAY_FALLBACK", "PREVIEW_NAVIGATION_ATTEMPTED", "COPY_LINK_USED"]),
+    eventType: z.enum(["WAKE_ATTEMPTED", "WAKE_APP_SWITCHED", "WAKE_GATEWAY_FALLBACK", "WAKE_WAIT_TIMEOUT", "WAKE_HANDOFF_UNAVAILABLE", "PREVIEW_NAVIGATION_ATTEMPTED", "COPY_LINK_USED"]),
     durationMs: z.number().int().nonnegative().max(120_000).optional(),
     detail: z.record(z.string(), z.unknown()).optional()
   }).safeParse(req.body);

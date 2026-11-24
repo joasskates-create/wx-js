@@ -8,6 +8,7 @@
   let wakeTimer;
   let handoff = null;
   let handoffPromise = null;
+  const WAKE_WAIT_MS = 12_000;
 
   function inWechat() { return /MicroMessenger/i.test(navigator.userAgent); }
   function isMobile() { return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
@@ -98,7 +99,7 @@
       const target = 'weixin://dl/businesswebview/link/?url=' + encodeURIComponent(payPage);
       telemetry('WAKE_ATTEMPTED', { target: 'jsapi', platform: /Android/i.test(navigator.userAgent) ? 'android' : 'ios' });
       try { window.location.href = target; } catch { /* browser refused the scheme */ }
-      wakeTimer = window.setTimeout(showCopyFallback, 2_500);
+      wakeTimer = window.setTimeout(showCopyFallback, WAKE_WAIT_MS);
       return;
     }
     let targetUrl;
@@ -106,36 +107,43 @@
       const current = await ensureHandoff();
       targetUrl = current?.bridgeUrl || previewUrl;
     } catch (error) {
-      telemetry('WAKE_GATEWAY_FALLBACK', { reason: error instanceof Error ? error.message : 'HANDOFF_CREATE_FAILED' });
-      targetUrl = previewUrl;
+      telemetry('WAKE_HANDOFF_UNAVAILABLE', { reason: error instanceof Error ? error.message : 'HANDOFF_CREATE_FAILED' });
+      $('hint').className = 'hint error';
+      $('hint').textContent = '公众号中转链接暂时不可用，请稍后重新点击“打开微信继续支付”';
+      showCopyFallback();
+      return;
     }
     const ua = navigator.userAgent;
     const platform = /Android/i.test(ua) ? 'android' : 'ios';
     telemetry('WAKE_ATTEMPTED', { target: targetUrl === previewUrl ? 'preview_fallback' : 'bridge', platform });
     let launched = false;
-    const onVis = () => {
-      if (document.visibilityState === 'hidden') {
-        launched = true;
-        telemetry('WAKE_APP_SWITCHED', { platform });
-      }
+    const markLaunched = () => {
+      if (launched) return;
+      launched = true;
+      telemetry('WAKE_APP_SWITCHED', { platform });
     };
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') markLaunched();
+    };
+    const onPageHide = () => markLaunched();
     document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pagehide', onPageHide, { once: true });
     // Both platforms first receive the same direct user-gesture Scheme attempt.
     // iOS may ignore the url parameter; the timed fallback opens the official
     // WeChat gateway for the exact preview URL.
     try { window.location.href = 'weixin://dl/businesswebview/link/?url=' + encodeURIComponent(targetUrl); } catch { /* browser refused the scheme */ }
     wakeTimer = window.setTimeout(() => {
       document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pagehide', onPageHide);
       if (launched) {
         $('hint').textContent = '微信已打开，正在加载临时公众号文章…';
         return;
       }
-      telemetry('WAKE_GATEWAY_FALLBACK', { platform, target: 'preview_gateway' });
-      $('hint').textContent = '正在打开微信官方引导页…';
-      // On iOS this is the supported user-visible fallback; on Android it is
-      // also safer than silently leaving the user on a failed Scheme page.
-      window.setTimeout(() => { window.location.href = previewUrl; }, 150);
-    }, 2_500);
+      telemetry('WAKE_WAIT_TIMEOUT', { platform, waitMs: WAKE_WAIT_MS });
+      $('hint').className = 'hint error';
+      $('hint').textContent = '微信可能正在启动，请稍候；如果仍未进入，请再次点击“打开微信继续支付”';
+      showCopyFallback();
+    }, WAKE_WAIT_MS);
   }
   async function startPay() {
     if (!inWechat()) { wakeWechat(); return; }

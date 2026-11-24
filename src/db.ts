@@ -1991,7 +1991,9 @@ export function getPublicPaymentMonitoring(windowHours = 24): Record<string, unk
       bridgeOpened: eventCount('HANDOFF_BRIDGE_OPENED'),
       previewRedirected: eventCount('HANDOFF_PREVIEW_REDIRECTED'),
       handoffFailed: eventCount('HANDOFF_TICKET_FAILED') + eventCount('HANDOFF_BRIDGE_FAILED'),
-      gatewayFallback: eventCount('WAKE_GATEWAY_FALLBACK')
+      gatewayFallback: eventCount('WAKE_GATEWAY_FALLBACK'),
+      wakeWaitTimeout: eventCount('WAKE_WAIT_TIMEOUT'),
+      handoffUnavailable: eventCount('WAKE_HANDOFF_UNAVAILABLE')
     },
     events: events.map((item) => ({ ...item, count: Number(item.count || 0), avgDurationMs: Math.round(Number(item.avgDurationMs || 0)) })),
     recent
